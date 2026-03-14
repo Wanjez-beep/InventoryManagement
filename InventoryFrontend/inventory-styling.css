@@ -1,0 +1,51 @@
+body {
+    background-image: url('images/background-image-1.jpg');
+    font-family: Arial;
+    padding: 40px;
+    background: #f4f4f4;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
+h1 {
+    text-align: center;
+}
+
+.form input {
+    padding: 10px;
+    margin: 5px;
+}
+
+button {
+    padding: 10px;
+    background: green;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+table {
+    width: 100%;
+    margin-top: 20px;
+    background: white;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 10px;
+    border: 1px solid #ddd;
+}
+
+nav {
+    padding: 10px;
+    background-color: black;
+    text-align: center;
+    font-size: 25px;
+}
+
+nav a {
+    text-decoration: none;
+    color:#ddd;
+    margin: 0 15px;
+}

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Inventory Dashboard</title>
+    <link rel="stylesheet" href="inventory-styling.css">
+    <nav>
+        <a href ="home.html">Home</a>
+        <a href ="shamba.html">Shamba</a>
+    </nav>
+</head>
+<body>
+
+<h1>Inventory Management System</h1>
+
+<div class="form">
+    <input type="text" id="name" placeholder="Product Name">
+    <input type="text" id="category" placeholder="Category">
+    <input type="number" id="quantity" placeholder="Quantity">
+    <input type="number" id="price" placeholder="Price">
+    <button onclick="addProduct()">Add Product</button>
+</div>
+
+<input type="text" id="search" placeholder="Search..." onkeyup="searchProducts()">
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Quantity</th>
+            <th>Price</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="productTable"></tbody>
+</table>
+
+<script src="inventory-script.js"></script>
+</body>
+</html>

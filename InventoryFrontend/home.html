@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Home</title>
+    <link rel="stylesheet" href="inventory-styling.css">
+    <nav>
+        <a href ="inventory-web.html">Inventory</a>
+        <a href ="shamba.html">Shamba</a>
+    </nav>
+    <h1 id="greeting"></h1>
+
+<script>
+let hour = new Date().getHours();
+let greeting;
+
+if (hour < 12) {
+  greeting = "Good Morning";
+} else if (hour < 18) {
+  greeting = "Good Afternoon";
+} else {
+  greeting = "Good Evening";
+}
+
+document.getElementById("greeting").innerHTML = greeting;
+</script>
+</html>
