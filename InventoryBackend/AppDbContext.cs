@@ -19,5 +19,7 @@ namespace InventorySystem.Data
         }
 
         public DbSet<Product> Products { get; set; }
+        public DbSet<InventoryLog> InventoryLogs { get; set; }
+        public DbSet<Sale> Sales { get; set; }
     }
 }
