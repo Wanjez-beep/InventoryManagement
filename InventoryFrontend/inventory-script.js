@@ -13,7 +13,8 @@ async function loadProducts() {
                 <td>${p.name}</td>
                 <td>${p.category}</td>
                 <td>${p.quantity}</td>
-                <td>$${p.price}</td>
+                <td>Ksh ${p.costPrice || 0}</td>
+                <td>Ksh ${p.price}</td>
                 <td>
                     <button onclick="deleteProduct(${p.id})">Delete</button>
                 </td>
@@ -27,6 +28,7 @@ async function addProduct() {
         name: document.getElementById("name").value,
         category: document.getElementById("category").value,
         quantity: parseInt(document.getElementById("quantity").value),
+        costPrice: parseFloat(document.getElementById("costPrice").value),
         price: parseFloat(document.getElementById("price").value)
     };
 
