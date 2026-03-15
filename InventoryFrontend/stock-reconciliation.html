@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stock Reconciliation</title>
+    <link rel="stylesheet" href="inventory-styling.css">
+    <style>
+        .reconciliation-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .reconciliation-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .reconciliation-table th {
+            background-color: #2196F3;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .reconciliation-table td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .reconciliation-table tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .discrepancy {
+            font-weight: bold;
+            color: #d32f2f;
+        }
+
+        .discrepancy.zero {
+            color: #388e3c;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #1976D2;
+        }
+
+        button.save {
+            background: #388e3c;
+        }
+
+        button.save:hover {
+            background: #2e7d32;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #2196F3;
+        }
+
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .filter-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+
+        .filter-section input,
+        .filter-section select {
+            padding: 8px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="home.html">Home</a>
+        <a href="inventory-web.html">Inventory</a>
+        <a href="stock-reconciliation.html">Stock Reconciliation</a>
+    </nav>
+
+    <div class="reconciliation-container">
+        <h1>Stock Reconciliation</h1>
+        <p>Compare physical stock counts with computer quantities. Enter the physical count and create adjustments as needed.</p>
+
+        <div id="message"></div>
+
+        <div class="filter-section">
+            <label>Filter by Category:</label>
+            <select id="categoryFilter">
+                <option value="">All Categories</option>
+            </select>
+            <button onclick="clearReconciliation()">Clear Entries</button>
+        </div>
+
+        <div class="loading" id="loading">Loading inventory data...</div>
+
+        <table class="reconciliation-table" id="reconciliationTable" style="display:none;">
+            <thead>
+                <tr>
+                    <th>Product Name</th>
+                    <th>Category</th>
+                    <th>Computer Quantity</th>
+                    <th>Physical Count</th>
+                    <th>Discrepancy</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+            </tbody>
+        </table>
+
+        <div class="action-buttons">
+            <button class="save" onclick="saveReconciliation()">Save Adjustments</button>
+            <button onclick="exportToCSV()">Export Report</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5267/api';
+        let reconciliationData = [];
+
+        // Load inventory data on page load
+        window.addEventListener('DOMContentLoaded', loadReconciliationData);
+
+        async function loadReconciliationData() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/inventorylogs/reconciliation-summary`);
+                if (!response.ok) throw new Error('Failed to load data');
+
+                reconciliationData = await response.json();
+                populateTable(reconciliationData);
+                populateCategoryFilter();
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('reconciliationTable').style.display = 'table';
+            } catch (error) {
+                showMessage('Error loading inventory data: ' + error.message, 'error');
+            }
+        }
+
+        function populateCategoryFilter() {
+            const categories = [...new Set(reconciliationData.map(item => item.category || 'Uncategorized'))].sort();
+            const select = document.getElementById('categoryFilter');
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                select.appendChild(option);
+            });
+            select.addEventListener('change', filterByCategory);
+        }
+
+        function filterByCategory() {
+            const selectedCategory = document.getElementById('categoryFilter').value;
+            const filtered = selectedCategory === '' 
+                ? reconciliationData 
+                : reconciliationData.filter(item => (item.category || 'Uncategorized') === selectedCategory);
+            populateTable(filtered);
+        }
+
+        function populateTable(data) {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+
+            data.forEach(item => {
+                const row = document.createElement('tr');
+                const physicalCount = localStorage.getItem(`physical_${item.id}`) || '';
+                const discrepancy = physicalCount ? parseInt(physicalCount) - item.computerQuantity : 0;
+
+                row.innerHTML = `
+                    <td>${item.name}</td>
+                    <td>${item.category || 'N/A'}</td>
+                    <td>${item.computerQuantity}</td>
+                    <td>
+                        <input 
+                            type="number" 
+                            class="input-field" 
+                            value="${physicalCount}"
+                            data-product-id="${item.id}"
+                            onchange="updateDiscrepancy(${item.id})"
+                            placeholder="Enter count">
+                    </td>
+                    <td class="${discrepancy === 0 ? 'discrepancy zero' : 'discrepancy'}">
+                        <span id="disc_${item.id}">${discrepancy}</span>
+                    </td>
+                    <td>
+                        <button onclick="viewHistory(${item.id}, '${item.name}')">View History</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function updateDiscrepancy(productId) {
+            const input = document.querySelector(`input[data-product-id="${productId}"]`);
+            const product = reconciliationData.find(p => p.id === productId);
+            const physicalCount = parseInt(input.value) || 0;
+            const discrepancy = physicalCount - product.computerQuantity;
+
+            localStorage.setItem(`physical_${productId}`, input.value);
+            const discrepancyElement = document.getElementById(`disc_${productId}`);
+            discrepancyElement.textContent = discrepancy;
+            discrepancyElement.parentElement.className = discrepancy === 0 ? 'discrepancy zero' : 'discrepancy';
+        }
+
+        function clearReconciliation() {
+            if (confirm('Clear all physical count entries?')) {
+                reconciliationData.forEach(item => {
+                    localStorage.removeItem(`physical_${item.id}`);
+                    const input = document.querySelector(`input[data-product-id="${item.id}"]`);
+                    if (input) {
+                        input.value = '';
+                        updateDiscrepancy(item.id);
+                    }
+                });
+                showMessage('Entries cleared', 'success');
+            }
+        }
+
+        async function saveReconciliation() {
+            try {
+                let adjustmentsMade = 0;
+                for (const item of reconciliationData) {
+                    const physicalCount = localStorage.getItem(`physical_${item.id}`);
+                    if (physicalCount && parseInt(physicalCount) !== item.computerQuantity) {
+                        // Update product with new quantity
+                        const product = {
+                            name: item.name,
+                            category: item.category,
+                            quantity: parseInt(physicalCount),
+                            price: 0 // This would need to be fetched from actual product data
+                        };
+
+                        const response = await fetch(`${API_BASE_URL}/products/${item.id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(product)
+                        });
+
+                        if (!response.ok) throw new Error(`Failed to update product ${item.id}`);
+                        adjustmentsMade++;
+                    }
+                }
+
+                if (adjustmentsMade > 0) {
+                    showMessage(`${adjustmentsMade} adjustment(s) saved successfully!`, 'success');
+                    // Clear localStorage after successful save
+                    reconciliationData.forEach(item => {
+                        localStorage.removeItem(`physical_${item.id}`);
+                    });
+                    // Reload data
+                    loadReconciliationData();
+                } else {
+                    showMessage('No adjustments to save', 'success');
+                }
+            } catch (error) {
+                showMessage('Error saving adjustments: ' + error.message, 'error');
+            }
+        }
+
+        function viewHistory(productId, productName) {
+            alert(`View history for ${productName} - Coming soon!\n\nThis will show all inventory log entries for this product.`);
+            // TODO: Implement modal or separate page to show history
+        }
+
+        function exportToCSV() {
+            let csvContent = 'Product,Category,Computer Qty,Physical Count,Discrepancy\n';
+            
+            const rows = document.querySelectorAll('#tableBody tr');
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const name = cells[0].textContent;
+                const category = cells[1].textContent;
+                const computerQty = cells[2].textContent;
+                const physicalCount = cells[3].querySelector('input').value || '';
+                const discrepancy = cells[4].textContent;
+                
+                csvContent += `"${name}","${category}",${computerQty},"${physicalCount}",${discrepancy}\n`;
+            });
+
+            const link = document.createElement('a');
+            link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
+            link.download = `reconciliation-${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        }
+
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = message;
+            messageDiv.className = type;
+            setTimeout(() => {
+                messageDiv.textContent = '';
+                messageDiv.className = '';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
